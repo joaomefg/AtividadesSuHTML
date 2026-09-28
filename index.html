@@ -208,18 +208,18 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 }
 @media (max-width:460px){ .grid{grid-template-columns:1fr} }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important} }
+body.measuring .preview{display:flex!important;position:absolute!important;left:-10000px;top:0;width:900px;visibility:hidden}
 
 /* ---------- Impressão ---------- */
 @page{size:A4;margin:0}
 @media print{
-  html,body{height:auto;background:#fff}
+  /* imprime as cores de fundo (faixa cinza, bolinhas de ligar) mesmo com "gráficos de fundo" desmarcado */
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html,body{height:auto!important;overflow:visible!important;background:#fff}
   .topbar,.editor,.pv-bar,.mobile-tabs,.toast,.modal-bg{display:none!important}
-  .layout{display:block;height:auto}
-  .preview{display:block!important}
-  .pv-scroll{padding:0;overflow:visible}
-  .pages-holder{width:auto!important;height:auto!important}
-  .pages-scale{transform:none!important;gap:0}
-  .page{box-shadow:none;break-after:page;page-break-after:always}
+  .layout,.preview,.pv-scroll,.pages-holder,.pages-scale{display:block!important;height:auto!important;width:auto!important;
+    min-height:0!important;overflow:visible!important;padding:0!important;margin:0!important;transform:none!important}
+  .page{box-shadow:none;margin:0;height:296.5mm;break-after:page;page-break-after:always;break-inside:avoid}
   .page:last-child{break-after:auto;page-break-after:auto}
   .ph{visibility:hidden}
   .d-q:hover,.d-q.active,.too-long{outline:none!important}
@@ -687,10 +687,22 @@ function newPage(host){
   host.appendChild(p);
   return p.querySelector(".content");
 }
-const over = c => c.scrollHeight > c.clientHeight + 1;
+// Folga de ~4mm: na impressão o texto pode ocupar um pouco mais que na tela
+const over = c => {
+  const last = c.lastElementChild; if (!last) return false;
+  const pad = parseFloat(getComputedStyle(c).paddingBottom) || 0;
+  return last.offsetTop + last.offsetHeight > c.clientHeight - pad - 16;
+};
 
 function renderPreview(){
-  const host = $("#pages"); host.innerHTML = "";
+  const host = $("#pages");
+  // Se a folha estiver escondida (aba "Editar" no celular), mostra fora da tela só para medir
+  const medir = !host.offsetParent;
+  if (medir) document.body.classList.add("measuring");
+  try { paginar(host); } finally { if (medir) document.body.classList.remove("measuring"); }
+}
+function paginar(host){
+  host.innerHTML = "";
   const blocks = [buildHeader(), ...state.questoes.map(buildQ)];
   let c = newPage(host); const longos = new Set();
   for (const b of blocks){
