@@ -75,7 +75,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .field > span{font-size:13px;font-weight:600;color:var(--muted)}
 input[type=text],input[type=number],input[type=date],select,textarea{
   width:100%;border:1px solid var(--line);border-radius:8px;background:#fff;padding:8px 10px;font-size:15px}
-textarea{resize:vertical;min-height:72px;line-height:1.4}
+textarea{resize:none;min-height:72px;line-height:1.4;overflow:hidden}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .check{display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer}
 .check input{width:18px;height:18px;accent-color:var(--accent)}
@@ -477,11 +477,23 @@ function tabEditor(q){
 function renderList(focusSel){
   const n = state.questoes.length;
   $("#qList").innerHTML = state.questoes.map((q,i) => qCard(q,i,n)).join("");
+  ajustarTodos();
   if (focusSel){ const el = document.querySelector(focusSel); if (el){ el.focus({preventScroll:true}); el.scrollIntoView({block:"center",behavior:"smooth"}); } }
 }
+/* A caixa do enunciado cresce conforme o texto */
+function ajustarAltura(ta){
+  if (!ta.offsetParent) return; // escondida (aba "Ver folha" no celular)
+  ta.style.height = "auto";
+  ta.style.height = ta.scrollHeight + 2 + "px";
+}
+function ajustarTodos(){ document.querySelectorAll("#qList textarea").forEach(ajustarAltura); }
+let tResize = 0;
+window.addEventListener("resize", () => { clearTimeout(tResize); tResize = setTimeout(ajustarTodos, 100); });
+
 const findQ = el => { const c = el.closest(".q"); return c ? state.questoes.findIndex(q => q.id === c.dataset.id) : -1; };
 
 $("#qList").addEventListener("input", e => {
+  if (e.target.tagName === "TEXTAREA") ajustarAltura(e.target);
   const i = findQ(e.target); if (i < 0) return; const q = state.questoes[i];
   if (e.target.dataset.qf){
     const f = e.target.dataset.qf;
@@ -735,7 +747,7 @@ new ResizeObserver(() => { if (zoom === "fit") applyZoom(); }).observe($("#pvScr
 function setView(v){
   document.body.dataset.view = v;
   document.querySelectorAll(".mobile-tabs button").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === v));
-  if (v === "preview") requestAnimationFrame(applyZoom);
+  requestAnimationFrame(v === "preview" ? applyZoom : ajustarTodos);
 }
 document.querySelectorAll(".mobile-tabs button").forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
 
