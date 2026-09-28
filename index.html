@@ -141,8 +141,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 
 .doc{font-size:11pt;line-height:1.35}
 .doc.grande{font-size:13pt}
-.d-head .d-logo{height:24mm;display:flex;align-items:flex-start;padding-left:4mm}
-.d-head .d-logo img,.d-head .d-logo svg{height:24mm;width:auto;max-width:60mm;object-fit:contain}
+.d-head .d-logo{height:26mm;display:flex;align-items:flex-start;padding-left:4mm}
+.d-head .d-logo img,.d-head .d-logo svg{height:26mm;width:auto;max-width:60mm;object-fit:contain}
 .d-title{text-align:center;font-weight:700;font-size:12pt;margin-top:1mm}
 .d-sub{text-align:center;font-weight:700;font-size:12pt;margin:3mm 0 4mm}
 .d-info,.d-name{width:100%;border-collapse:collapse;table-layout:fixed;font-size:7.5pt}
@@ -345,15 +345,7 @@ const uid = () => Math.random().toString(36).slice(2, 9);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const LETRAS = "abcdefghij";
 
-const LOGO_SVG = `<svg viewBox="0 0 110 92" xmlns="http://www.w3.org/2000/svg" aria-label="CEM">
-  <g stroke="#f2a900" stroke-width="3.2" stroke-linecap="round" fill="none"><path d="M36 4v7M20 10l5 5M52 10l-5 5M13 25h7M52 25h7"/></g>
-  <path d="M36 14a12 12 0 0 0-7 21.8V40h14v-4.2A12 12 0 0 0 36 14z" fill="none" stroke="#f2a900" stroke-width="3.2" stroke-linejoin="round"/>
-  <path d="M30 44h12M31.5 48h9" stroke="#1e7a46" stroke-width="2.6" stroke-linecap="round"/>
-  <path d="M44 50l12-12 3 3-12 12-4.5 1.5z" fill="#c8412b"/>
-  <text x="4" y="72" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="21" fill="#17806a" letter-spacing="1">CEM</text>
-  <text x="2" y="82" font-family="Arial, sans-serif" font-size="6.3" fill="#c8412b" letter-spacing="1.4">CENTRO DE ENSINO</text>
-  <text x="2" y="90" font-family="Arial, sans-serif" font-size="6.3" fill="#c8412b" letter-spacing="1.4">MULTIDISCIPLINAR</text>
-</svg>`;
+const LOGO_PADRAO = `<img src="logo.png" alt="CEM - Centro de Ensino Multidisciplinar">`;
 
 function novaQuestao(extra){
   return Object.assign({id:uid(), titulo:"", texto:"", tipo:"linhas", qtd:3, alternativas:["","","",""], imagem:null, imgW:0, imgH:0, imgTam:"m"}, extra||{});
@@ -639,7 +631,7 @@ function buildHeader(){
     const r2 = `<tr>${"<td></td>".repeat(22)}</tr>`;
     nome = `<table class="d-name"><colgroup>${"<col>".repeat(22)}</colgroup>${r1}${r2}</table>`;
   }
-  el.innerHTML = `<div class="d-logo">${state.logo ? `<img src="${state.logo}" alt="Logo">` : LOGO_SVG}</div>
+  el.innerHTML = `<div class="d-logo">${state.logo ? `<img src="${state.logo}" alt="Logo">` : LOGO_PADRAO}</div>
     <div class="d-title">${esc(state.titulo) || '<span class="ph">TIPO DE ATIVIDADE</span>'}</div>
     <div class="d-sub">${esc(state.ano) || '<span class="ph">ANO</span>'}</div>
     <table class="d-info"><colgroup><col style="width:47%"><col style="width:28%"><col style="width:25%"></colgroup>
