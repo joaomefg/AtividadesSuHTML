@@ -621,7 +621,7 @@ $("#fileLogo").addEventListener("change", e => {
 $("#btnLogoReset").addEventListener("click", () => { state.logo = null; fillHeader(); changed(); });
 
 $("#btnAddQ").addEventListener("click", () => {
-  const q = novaQuestao(); state.questoes.unshift(q); activeId = q.id; renderList(`#txt_${q.id}`); changed();
+  const q = novaQuestao(); state.questoes.push(q); activeId = q.id; renderList(`#txt_${q.id}`); changed();
 });
 
 /* ---------- Folha (pré-visualização) ---------- */
