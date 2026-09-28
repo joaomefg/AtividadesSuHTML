@@ -19,7 +19,7 @@ O que é digitado fica guardado no próprio navegador. Para continuar em outro c
 
 1. Envie este repositório para o GitHub.
 2. Em **Settings → Pages**, escolha *Deploy from a branch*, branch `main`, pasta `/ (root)`.
-3. Em cerca de 1 minuto a página fica disponível em `https://SEU-USUARIO.github.io/atividades-cem/`.
+3. Em cerca de 1 minuto a página fica disponível em `https://joaomefg.github.io/AtividadesSuHTML/`.
 
 ## Estrutura
 
