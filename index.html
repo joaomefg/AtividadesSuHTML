@@ -788,8 +788,18 @@ $("#fileOpen").addEventListener("change", e => {
 });
 $("#btnPrint").addEventListener("click", () => { $("#printHelp").hidden = false; $("#phGo").focus(); });
 $("#phCancel").addEventListener("click", () => $("#printHelp").hidden = true);
+/* O navegador usa o título da página como nome do PDF: "Matemática - 01-10-2026 - 4º ANO" */
+function nomeDoPdf(){
+  const data = fmtData(state.data).replace(/\//g, "-");
+  const partes = [state.componente, data, state.ano].map(s => String(s || "").trim()).filter(Boolean);
+  const nome = partes.join(" - ").replace(/[\\/:*?"<>|]/g, "");
+  return nome || "Atividade";
+}
+const tituloOriginal = document.title;
+window.addEventListener("afterprint", () => { document.title = tituloOriginal; });
 $("#phGo").addEventListener("click", () => {
   $("#printHelp").hidden = true;
+  document.title = nomeDoPdf();
   setTimeout(() => window.print(), 50);
 });
 document.addEventListener("keydown", e => { if (e.key === "Escape") $("#printHelp").hidden = true; });
