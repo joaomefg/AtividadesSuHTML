@@ -132,9 +132,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 /* ---------- Folha A4 (documento) ---------- */
 .page{width:210mm;height:297mm;background:#fff;position:relative;box-shadow:0 1px 3px rgba(20,40,30,.18),0 8px 24px rgba(20,40,30,.10);
   font-family:Arial, Helvetica, sans-serif;color:#000;overflow:hidden}
-.frame{position:absolute;left:8mm;right:8mm;top:6mm;height:268mm;border:1px solid #000}
+.frame{position:absolute;left:8mm;right:8mm;top:8mm;height:260mm;border:1px solid #000}
 .content{position:absolute;inset:0;padding:3mm;overflow:hidden;display:flex;flex-direction:column;gap:3.5mm}
-.foot{position:absolute;left:2mm;right:6mm;top:276mm}
+.foot{position:absolute;left:2mm;right:6mm;top:270mm}
 .foot .pnum{position:absolute;right:0;top:0;font-size:9pt;color:#777}
 .foot .fline{margin:5mm 12mm 0 0;border-top:1px solid #999}
 .foot .ftext{text-align:center;font-size:8pt;color:#a3a3a3;margin-top:2mm;letter-spacing:.2px}
@@ -211,7 +211,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 body.measuring .preview{display:flex!important;position:absolute!important;left:-10000px;top:0;width:900px;visibility:hidden}
 
 /* ---------- Impressão ---------- */
-@page{size:A4;margin:0}
+/* Margem de 8mm em cima e embaixo; a folha impressa (276mm) é mais baixa que o papel
+   para caber também no Safari do iPad, que usa margens próprias e encolhe a página. */
+@page{size:A4;margin:8mm 0}
 @media print{
   /* imprime as cores de fundo (faixa cinza, bolinhas de ligar) mesmo com "gráficos de fundo" desmarcado */
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
@@ -219,7 +221,9 @@ body.measuring .preview{display:flex!important;position:absolute!important;left:
   .topbar,.editor,.pv-bar,.mobile-tabs,.toast,.modal-bg{display:none!important}
   .layout,.preview,.pv-scroll,.pages-holder,.pages-scale{display:block!important;height:auto!important;width:auto!important;
     min-height:0!important;overflow:visible!important;padding:0!important;margin:0!important;transform:none!important}
-  .page{box-shadow:none;margin:0;height:296.5mm;break-after:page;page-break-after:always;break-inside:avoid}
+  .frame{top:0}
+  .foot{top:262mm}
+  .page{box-shadow:none;margin:0;height:276mm;break-after:page;page-break-after:always;break-inside:avoid}
   .page:last-child{break-after:auto;page-break-after:auto}
   .ph{visibility:hidden}
   .d-q:hover,.d-q.active,.too-long{outline:none!important}
