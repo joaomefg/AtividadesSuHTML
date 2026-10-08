@@ -152,6 +152,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 .d-q-bar{display:flex;border-top:1px solid #000;border-right:1px solid #000;margin-top:1mm}
 .d-q-title{width:51%;background:#d9d9d9;border:1px solid #000;border-top:0;padding:2mm 3mm;font-weight:700;font-size:10pt;min-height:9mm}
 .d-q-text{white-space:pre-wrap;margin-top:2mm;overflow-wrap:anywhere}
+.d-q-text.cont{margin-top:0}
 .d-q-img{margin-top:2.5mm;text-align:center}
 .d-q-img img{max-width:100%}
 .d-alts{margin:2mm 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:1.5mm}
@@ -449,7 +450,7 @@ function qCard(q, i, n){
     <details${q.titulo ? " open" : ""}><summary style="cursor:pointer;font-size:13px;color:var(--muted)">Mudar o texto da faixa cinza</summary>
       <label class="field" style="margin-top:8px"><span>Texto da faixa (vazio = “QUESTÃO ${i+1}”)</span>
       <input type="text" id="tit_${q.id}" value="${esc(q.titulo)}" data-qf="titulo" placeholder="QUESTÃO ${i+1}"></label></details>
-    <div class="warn" data-warn hidden>Esta questão é maior que uma folha inteira e vai ser cortada. Divida em duas ou diminua a imagem.</div>
+    <div class="warn" data-warn hidden>Um trecho desta questão é maior que uma folha inteira e vai ser cortado. Divida o texto ou diminua a imagem.</div>
   </div>`;
 }
 const MAX_COLS = 6;
@@ -697,15 +698,96 @@ function renderPreview(){
   if (medir) document.body.classList.add("measuring");
   try { paginar(host); } finally { if (medir) document.body.classList.remove("measuring"); }
 }
+/* ---------- Questão que continua na folha seguinte ---------- */
+function linhaTxt(s, primeira){
+  const d = document.createElement("div"); d.className = "d-q-text" + (primeira ? "" : " cont");
+  d.textContent = s || "​"; // linha vazia mantém a altura
+  return d;
+}
+// Desmonta a questão em pedaços que não se partem: faixa, linhas do enunciado, linhas da tabela, imagem, linhas de resposta
+function pedacos(q, i){
+  const b = buildQ(q, i), fila = [];
+  let g = 0;
+  const grupo = (itens, wrap) => { const k = "g" + (g++); itens.forEach(el => fila.push({el, g:k, wrap})); };
+  for (const n of [...b.children]){
+    if (n.matches(".d-q-bar")) fila.push({el:n, keep:true});
+    else if (n.matches(".d-q-text") && q.texto) q.texto.split("\n").forEach((s,k) => fila.push({el:linhaTxt(s, k === 0), txt:true}));
+    else if (n.matches(".d-tab")){
+      const cab = n.tHead;
+      grupo([...n.tBodies[0].rows], () => { const t = n.cloneNode(false); if (cab) t.appendChild(cab.cloneNode(true)); t.appendChild(document.createElement("tbody")); return t; });
+    }
+    else if (n.matches(".d-lines, .d-alts")) grupo([...n.children], () => n.cloneNode(false));
+    else if (n.matches(".d-space")) grupo(Array.from({length:q.qtd||1}, () => { const d = document.createElement("div"); d.style.height = "9mm"; return d; }),
+      () => { const w = n.cloneNode(false); w.style.height = ""; return w; });
+    else fila.push({el:n});
+  }
+  return fila;
+}
+const miolo = w => w.tBodies ? w.tBodies[0] : w;
+function por(frag, a){
+  if (!a.g){ frag.appendChild(a.el); return; }
+  let w = frag.lastElementChild;
+  if (!w || w.dataset.g !== a.g){ w = a.wrap(); w.dataset.g = a.g; frag.appendChild(w); }
+  miolo(w).appendChild(a.el);
+}
+function tirar(a){
+  const w = a.g ? a.el.closest("[data-g]") : null;
+  a.el.remove();
+  if (w && !miolo(w).children.length) w.remove();
+}
+// Deixa nesta folha só as palavras do parágrafo que cabem; devolve o resto (ou null se não coube nada)
+function cortarTexto(c, a){
+  const el = a.el, partes = el.textContent.split(/(\s+)/);
+  let lo = 0, hi = partes.length - 1;
+  while (lo < hi){
+    const m = Math.ceil((lo + hi) / 2);
+    el.textContent = partes.slice(0, m).join("");
+    if (over(c)) hi = m - 1; else lo = m;
+  }
+  const ini = partes.slice(0, lo).join("");
+  if (!ini.trim()){ el.textContent = partes.join(""); return null; }
+  el.textContent = ini.replace(/\s+$/, "");
+  return {el:linhaTxt(partes.slice(lo).join("").replace(/^\s+/, ""), false), txt:true};
+}
+function fluir(host, c, q, i, longos){
+  const fila = pedacos(q, i);
+  const novoFrag = () => {
+    const f = document.createElement("div"); f.className = "d-q" + (q.id === activeId ? " active" : ""); f.dataset.id = q.id;
+    c.appendChild(f); return f;
+  };
+  let frag = novoFrag(), postos = [];
+  while (fila.length){
+    const a = fila.shift();
+    por(frag, a);
+    if (!over(c)){ postos.push(a); continue; }
+    const resto = a.txt ? cortarTexto(c, a) : null;
+    if (resto){ postos.push(a); fila.unshift(resto); }
+    else {
+      // folha só com este pedaço e mesmo assim não coube: não há como dividir mais
+      if (c.children.length === 1 && postos.every(p => p.keep)){ frag.classList.add("too-long"); longos.add(q.id); postos.push(a); continue; }
+      tirar(a); fila.unshift(a);
+    }
+    // a faixa cinza não fica sozinha no pé da folha
+    if (postos.every(p => p.keep)) postos.reverse().forEach(p => { tirar(p); fila.unshift(p); });
+    if (!frag.children.length) frag.remove();
+    c = newPage(host); frag = novoFrag(); postos = [];
+  }
+  return c;
+}
 function paginar(host){
   host.innerHTML = "";
-  const blocks = [buildHeader(), ...state.questoes.map(buildQ)];
   let c = newPage(host); const longos = new Set();
-  for (const b of blocks){
+  c.appendChild(buildHeader());
+  state.questoes.forEach((q, i) => {
+    const b = buildQ(q, i);
     c.appendChild(b);
-    if (over(c) && c.children.length > 1){ b.remove(); c = newPage(host); c.appendChild(b); }
-    if (over(c)){ b.classList.add("too-long"); if (b.dataset.id) longos.add(b.dataset.id); }
-  }
+    if (!over(c)) return;
+    // questão curta vai inteira para a folha seguinte; as maiores continuam de uma folha para a outra
+    const curta = b.offsetHeight <= c.clientHeight / 3;
+    b.remove();
+    if (curta){ c = newPage(host); c.appendChild(b); }
+    else c = fluir(host, c, q, i, longos);
+  });
   const pages = host.querySelectorAll(".page");
   pages.forEach((p,i) => p.querySelector(".pnum").textContent = i+1);
   $("#pageCount").textContent = pages.length === 1 ? "1 folha" : pages.length + " folhas";
@@ -726,7 +808,7 @@ function setActive(id, fromPreview){
   activeId = id;
   document.querySelectorAll("#qList .q").forEach(c => c.classList.toggle("active", c.dataset.id === id));
   let alvo = null;
-  document.querySelectorAll("#pages .d-q").forEach(d => { const on = d.dataset.id === id; d.classList.toggle("active", on); if (on) alvo = d; });
+  document.querySelectorAll("#pages .d-q").forEach(d => { const on = d.dataset.id === id; d.classList.toggle("active", on); if (on && !alvo) alvo = d; });
   if (alvo && !fromPreview){
     const sc = $("#pvScroll"), r = alvo.getBoundingClientRect(), rs = sc.getBoundingClientRect();
     if (r.top < rs.top || r.bottom > rs.bottom) sc.scrollBy({top: r.top - rs.top - 40, behavior:"smooth"});
