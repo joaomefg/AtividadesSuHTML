@@ -29,6 +29,7 @@
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--ui)}
 button,input,select,textarea{font:inherit;color:inherit}
+button{touch-action:manipulation} /* evita o zoom de toque duplo no iPad */
 :focus-visible{outline:3px solid var(--sun);outline-offset:2px}
 [hidden]{display:none!important}
 
@@ -471,11 +472,54 @@ function tabEditor(q){
       ${t.ligar ? `<button class="btn small ghost" type="button" data-act="shuffle" style="width:fit-content">Embaralhar a última coluna</button>` : ""}` : ""}
     <p class="tb-tip">Dica: copie uma tabela do Word, do Excel ou de um site e cole num quadradinho. Ela se preenche sozinha.</p>`;
 }
-function renderList(focusSel){
+/* Mantém a rolagem parada enquanto a lista é redesenhada.
+   O Safari (iPad/iPhone) não tem "ancoragem de rolagem": quando a lista encolhe por um
+   instante durante o redesenho, ele joga a página para cima e não volta mais. */
+function semPularRolagem(fn){
+  const ed = $(".editor"), topoEd = ed.scrollTop, topoJanela = window.scrollY;
+  const qList = $("#qList");
+  qList.style.minHeight = qList.offsetHeight + "px"; // segura a altura durante o redesenho
+  try { fn(); }
+  finally {
+    qList.style.minHeight = "";
+    ed.scrollTop = topoEd;
+    if (window.scrollY !== topoJanela) window.scrollTo(0, topoJanela);
+  }
+}
+/* Atualiza os cartões das questões sem recriar a caixa do enunciado.
+   No iPad, apagar a caixa em que se está digitando fecha o teclado e faz a página pular. */
+function atualizarCartoes(html){
+  const list = $("#qList"), tmp = document.createElement("div");
+  tmp.innerHTML = html;
+  const campoTexto = card => { const ta = card.querySelector(":scope > .field > textarea"); return ta ? ta.parentElement : null; };
+  const novos = [...tmp.children].map(novo => {
+    const velho = [...list.children].find(c => c.dataset.id === novo.dataset.id);
+    const campoVelho = velho && campoTexto(velho), campoNovo = campoTexto(novo);
+    if (!campoVelho || !campoNovo) return novo;
+    velho.className = novo.className;
+    [...velho.children].forEach(k => { if (k !== campoVelho) k.remove(); });
+    let antes = true;
+    [...novo.children].forEach(k => {
+      if (k === campoNovo){ antes = false; return; }
+      if (antes) velho.insertBefore(k, campoVelho); else velho.appendChild(k);
+    });
+    const taV = campoVelho.querySelector("textarea"), taN = campoNovo.querySelector("textarea");
+    if (taV.value !== taN.value) taV.value = taN.value;
+    return velho;
+  });
+  [...list.children].forEach(c => { if (!novos.includes(c)) c.remove(); });
+  novos.forEach((c,i) => { if (list.children[i] !== c) list.insertBefore(c, list.children[i] || null); });
+}
+function renderList(focusSel, rolar = true){
   const n = state.questoes.length;
-  $("#qList").innerHTML = state.questoes.map((q,i) => qCard(q,i,n)).join("");
-  ajustarTodos();
-  if (focusSel){ const el = document.querySelector(focusSel); if (el){ el.focus({preventScroll:true}); el.scrollIntoView({block:"center",behavior:"smooth"}); } }
+  semPularRolagem(() => {
+    atualizarCartoes(state.questoes.map((q,i) => qCard(q,i,n)).join(""));
+    ajustarTodos();
+  });
+  if (focusSel){
+    const el = document.querySelector(focusSel);
+    if (el){ el.focus({preventScroll:true}); if (rolar) el.scrollIntoView({block:"center",behavior:"smooth"}); }
+  }
 }
 /* A caixa do enunciado cresce conforme o texto */
 function ajustarAltura(ta){
@@ -490,7 +534,7 @@ window.addEventListener("resize", () => { clearTimeout(tResize); tResize = setTi
 const findQ = el => { const c = el.closest(".q"); return c ? state.questoes.findIndex(q => q.id === c.dataset.id) : -1; };
 
 $("#qList").addEventListener("input", e => {
-  if (e.target.tagName === "TEXTAREA") ajustarAltura(e.target);
+  if (e.target.tagName === "TEXTAREA") semPularRolagem(() => ajustarAltura(e.target));
   const i = findQ(e.target); if (i < 0) return; const q = state.questoes[i];
   if (e.target.dataset.qf){
     const f = e.target.dataset.qf;
@@ -501,7 +545,7 @@ $("#qList").addEventListener("input", e => {
     const [r,c] = e.target.dataset.cell.split(",").map(Number);
     if (r < 0) q.tabela.cab[c] = e.target.value; else q.tabela.linhas[r][c] = e.target.value;
   } else if (e.target.dataset.tb === "ligar" && q.tabela){
-    q.tabela.ligar = e.target.checked; renderList(`#lig_${q.id}`);
+    q.tabela.ligar = e.target.checked; renderList(`#lig_${q.id}`, false);
   }
   changed();
 });
