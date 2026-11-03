@@ -24,5 +24,6 @@ O que é digitado fica guardado no próprio navegador. Para continuar em outro c
 ## Estrutura
 
 - `index.html`: a aplicação inteira (HTML, CSS e JavaScript no mesmo arquivo, sem dependências para instalar).
+- `PROMPT-CHATGPT.md`: instruções para gerar atividades no ChatGPT e importar no site.
 - `logo.png`: logo padrão da escola, usado no cabeçalho da folha.
 - `.nojekyll`: faz o GitHub Pages servir os arquivos como estão.

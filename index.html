@@ -193,6 +193,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent);
 .modal h3{margin:0 0 8px;font:700 21px/1.2 var(--display)}
 .modal ol{margin:0 0 16px;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .modal .row{justify-content:flex-end}
+.modal.lg{max-width:640px;max-height:calc(100vh - 32px);overflow-y:auto}
+.modal .passos{gap:14px}
+.modal .passos li > b{display:block;margin-bottom:6px}
+.modal .passos .row{justify-content:flex-start}
+.modal .passos .grid{margin-bottom:8px}
+.ia-erro{margin-top:8px}
 
 /* ---------- Celular ---------- */
 @media (max-width:900px){
@@ -242,10 +248,11 @@ body.measuring .preview{display:flex!important;position:absolute!important;left:
   <div class="actions">
     <button class="btn ghost" id="btnNew" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15h6"/></svg><span>Nova<span class="lbl-long"> atividade</span></span></button>
     <button class="btn ghost" id="btnOpen" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Abrir<span class="lbl-long"> salva</span></span></button>
+    <button class="btn" id="btnIA" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>Gerar com ChatGPT</button>
     <button class="btn" id="btnSave" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg><span>Salvar<span class="lbl-long"> para editar depois</span></span></button>
     <button class="btn primary" id="btnPrint" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/></svg>Imprimir ou PDF</button>
   </div>
-  <input type="file" id="fileOpen" accept=".json,application/json" hidden>
+  <input type="file" id="fileOpen" accept=".json,.txt,application/json,text/plain" hidden>
 </header>
 
 <nav class="mobile-tabs">
@@ -326,6 +333,42 @@ body.measuring .preview{display:flex!important;position:absolute!important;left:
 
 <input type="file" id="fileImg" accept="image/*" hidden>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="modal-bg" id="iaModal" hidden>
+  <div class="modal lg" role="dialog" aria-modal="true" aria-labelledby="ia_t">
+    <h3 id="ia_t">Gerar atividade com o ChatGPT</h3>
+    <ol class="passos">
+      <li><b>Diga o que você quer</b>
+        <div class="grid">
+          <label class="field full"><span>Conteúdo / tema</span>
+            <input type="text" id="ia_tema" placeholder="Ex.: verbos (pessoa e número)" autocomplete="off"></label>
+          <label class="field"><span>Quantas questões?</span>
+            <input type="number" id="ia_qtd" min="1" max="40" value="10"></label>
+          <label class="field"><span>Observações (opcional)</span>
+            <input type="text" id="ia_obs" placeholder="Ex.: incluir 2 de ligar" autocomplete="off"></label>
+        </div>
+        <p class="tb-tip">Componente, ano, data e professor(a) vêm do cabeçalho da página.</p>
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary small" type="button" id="iaCopiar">Copiar instruções para o ChatGPT</button>
+        </div>
+        <details style="margin-top:8px"><summary style="cursor:pointer;font-size:13px;color:var(--muted)">Ver as instruções</summary>
+          <textarea id="ia_prompt" rows="8" readonly style="margin-top:6px;font-size:12.5px"></textarea></details>
+      </li>
+      <li><b>Cole no ChatGPT e envie</b>
+        Abra o <a href="https://chatgpt.com" target="_blank" rel="noopener">ChatGPT</a>, cole as instruções e envie. Ele responde com um arquivo <code>atividade.json</code> e o mesmo conteúdo em texto.</li>
+      <li><b>Traga a resposta para cá</b>
+        <textarea id="ia_cola" rows="5" placeholder="Cole aqui a resposta do ChatGPT (o texto entre { e })"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary small" type="button" id="iaImportar">Importar texto colado</button>
+          <button class="btn small" type="button" id="iaArquivo">Escolher arquivo .json</button>
+        </div>
+        <div class="warn ia-erro" id="iaErro" hidden></div>
+      </li>
+    </ol>
+    <p class="tb-tip">A atividade importada substitui a que está na tela. Para guardar a atual antes, use “Salvar para editar depois”. Depois de importar, confira cada questão antes de imprimir.</p>
+    <div class="row" style="margin-top:12px"><button class="btn ghost" type="button" id="iaFechar">Fechar</button></div>
+  </div>
+</div>
 
 <div class="modal-bg" id="printHelp" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="ph_t">
@@ -908,14 +951,177 @@ $("#btnSave").addEventListener("click", () => {
   toast("Arquivo salvo em Downloads. Use “Abrir salva” para continuar depois.");
 });
 $("#btnOpen").addEventListener("click", () => { $("#fileOpen").value = ""; $("#fileOpen").click(); });
+/* ---------- Importar (arquivo salvo aqui ou resposta do ChatGPT) ---------- */
+// Aceita o JSON mesmo com texto em volta (```json ... ```) e corrige campos faltando ou fora do padrão
+function dataISO(v){
+  const t = String(v ?? "").trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  const m = t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  return m ? `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}` : "";
+}
+function normTabela(t){
+  if (!t || !Array.isArray(t.linhas)) return null;
+  const str = v => v == null ? "" : String(v);
+  let cab = Array.isArray(t.cab) ? t.cab.map(str) : [];
+  let linhas = t.linhas.filter(Array.isArray).map(r => r.map(str));
+  const n = Math.min(MAX_COLS, Math.max(1, cab.length, ...linhas.map(r => r.length)));
+  const ajusta = r => r.slice(0, n).concat(Array(Math.max(0, n - r.length)).fill(""));
+  cab = ajusta(cab); linhas = linhas.map(ajusta);
+  if (!linhas.length) linhas = [Array(n).fill("")];
+  return {cab, linhas, ligar: !!t.ligar && n >= 2};
+}
+function normQuestao(q, ids){
+  if (typeof q === "string") q = {texto:q};
+  q = q || {};
+  const str = v => v == null ? "" : String(v);
+  let alts = Array.isArray(q.alternativas)
+    ? q.alternativas.map(a => str(a).replace(/^\s*\(?[a-j]\)\s*/i, "").trim()).filter(Boolean).slice(0, LETRAS.length) : [];
+  let tipo = ["linhas","espaco","alternativas","nenhum"].includes(q.tipo) ? q.tipo : (alts.length >= 2 ? "alternativas" : "linhas");
+  if (tipo === "alternativas" && alts.length < 2) tipo = "linhas";
+  if (tipo !== "alternativas" && alts.length < 2) alts = ["","","",""];
+  let qtd = parseInt(q.qtd, 10); if (!(qtd >= 1)) qtd = 3; qtd = Math.min(30, qtd);
+  const id = typeof q.id === "string" && q.id && !ids.has(q.id) ? q.id : uid(); ids.add(id);
+  const temImg = typeof q.imagem === "string" && q.imagem.startsWith("data:image/") && q.imgW > 0 && q.imgH > 0;
+  return novaQuestao({id, titulo: str(q.titulo).trim(), texto: str(q.texto ?? q.enunciado).replace(/\r/g, ""), tipo, qtd, alternativas: alts,
+    imagem: temImg ? q.imagem : null, imgW: temImg ? q.imgW : 0, imgH: temImg ? q.imgH : 0,
+    imgTam: ["p","m","g"].includes(q.imgTam) ? q.imgTam : "m", tabela: normTabela(q.tabela)});
+}
+function normalizar(bruto){
+  const t = String(bruto || ""), i = t.indexOf("{"), j = t.lastIndexOf("}");
+  const ia = t.indexOf("["), ja = t.lastIndexOf("]");
+  let s;
+  try {
+    if (i >= 0 && j > i) s = JSON.parse(t.slice(i, j + 1));
+    else if (ia >= 0 && ja > ia) s = JSON.parse(t.slice(ia, ja + 1));
+    else throw new Error("vazio");
+  } catch (e) {
+    throw new Error(i < 0 && ia < 0
+      ? "Não encontrei a atividade no texto. Copie a resposta do ChatGPT inteira, do primeiro { ao último }."
+      : "O texto parece cortado ou com erro de formato. Peça ao ChatGPT: “mostre o JSON completo de novo, num único bloco, sem cortar”.");
+  }
+  if (Array.isArray(s)) s = {questoes: s};
+  if (!s || !Array.isArray(s.questoes) || !s.questoes.length) throw new Error("Não encontrei nenhuma questão. O arquivo precisa ter a lista \"questoes\".");
+  // o que não vier no arquivo continua como está no cabeçalho atual
+  const out = Object.assign(vazio(), {ano: state.ano, componente: state.componente, professor: state.professor, data: state.data,
+    valor: state.valor, fonte: state.fonte, mostrarNome: state.mostrarNome, logo: state.logo, titulo: state.titulo});
+  ["titulo","ano","componente","professor"].forEach(k => { if (s[k] != null && String(s[k]).trim()) out[k] = String(s[k]).trim(); });
+  if (s.valor != null && String(s.valor).trim()) out.valor = String(s.valor).replace(",", ".").replace(/[^\d.]/g, "");
+  if (dataISO(s.data)) out.data = dataISO(s.data);
+  if (s.fonte === "grande" || s.fonte === "normal") out.fonte = s.fonte;
+  if (typeof s.mostrarNome === "boolean") out.mostrarNome = s.mostrarNome;
+  if (typeof s.logo === "string" && s.logo.startsWith("data:image/")) out.logo = s.logo;
+  const ids = new Set();
+  out.questoes = s.questoes.map(q => normQuestao(q, ids));
+  out.exemplo = false;
+  return out;
+}
+function importar(texto){
+  const s = normalizar(texto);
+  carregar(s);
+  return s.questoes.length;
+}
 $("#fileOpen").addEventListener("change", e => {
   const f = e.target.files[0]; if (!f) return;
+  const viaIA = !$("#iaModal").hidden;
   f.text().then(t => {
-    const s = JSON.parse(t);
-    if (!s || !Array.isArray(s.questoes)) throw 0;
-    s.exemplo = false; carregar(s); toast("Atividade aberta.");
-  }).catch(() => toast("Esse arquivo não é uma atividade salva por esta página."));
+    const n = importar(t);
+    if (viaIA) fecharIA();
+    toast(n === 1 ? "Atividade aberta: 1 questão. Confira antes de imprimir." : `Atividade aberta: ${n} questões. Confira antes de imprimir.`);
+  }).catch(err => {
+    const msg = err && err.message ? err.message : "Não consegui abrir esse arquivo.";
+    if (viaIA){ $("#iaErro").textContent = msg; $("#iaErro").hidden = false; } else toast(msg);
+  });
 });
+
+/* ---------- Instruções para o ChatGPT ---------- */
+// Exemplo compacto: cabeçalho em linhas e cada questão numa linha só
+function exemploJSON(ex){
+  const topo = Object.entries(ex).filter(([k]) => k !== "questoes").map(([k,v]) => `  ${JSON.stringify(k)}: ${JSON.stringify(v)},`);
+  const qs = ex.questoes.map(q => "    " + JSON.stringify(q));
+  return ["{", ...topo, '  "questoes": [', qs.join(",\n"), "  ]", "}"].join("\n");
+}
+function promptIA(){
+  const ano = state.ano || "4º ANO";
+  const comp = state.componente || "[componente curricular]";
+  const tema = $("#ia_tema").value.trim() || "[tema da atividade]";
+  const qtd = Math.max(1, Math.min(40, parseInt($("#ia_qtd").value, 10) || 10));
+  const obs = $("#ia_obs").value.trim();
+  const ex = {
+    titulo: state.titulo || "LISTA DE EXERCÍCIOS", ano, componente: state.componente || "",
+    data: state.data || "", professor: state.professor || "", valor: state.valor || "",
+    questoes: [
+      {texto:"Complete as frases com um verbo adequado.\n\na) Eu ____________ todos os dias.\nb) Nós ____________ na escola.", tipo:"nenhum", qtd:0, alternativas:[], tabela:null},
+      {texto:"Marque a alternativa correta.\n\nNa frase “Nós fazemos a tarefa.”, o verbo está na:", tipo:"alternativas", qtd:0, alternativas:["1ª pessoa do singular","1ª pessoa do plural","3ª pessoa do singular"], tabela:null},
+      {texto:"Ligue cada pronome à pessoa correta.", tipo:"nenhum", qtd:0, alternativas:[], tabela:{cab:["Pronome","Pessoa"], linhas:[["Eu","3ª pessoa do plural"],["Eles","1ª pessoa do singular"]], ligar:true}},
+      {texto:"Complete a tabela.", tipo:"nenhum", qtd:0, alternativas:[], tabela:{cab:["Frase","Pessoa","Número"], linhas:[["Eu canto.","",""],["Elas dançam.","",""]], ligar:false}},
+      {texto:"Escreva uma frase usando um verbo no plural.", tipo:"linhas", qtd:3, alternativas:[], tabela:null}
+    ]
+  };
+  return `Você é um(a) professor(a) experiente do Ensino Fundamental I. Crie uma atividade escolar e me devolva no formato JSON descrito abaixo, para eu importar no meu sistema de atividades.
+
+DADOS DA ATIVIDADE
+- Componente curricular: ${comp}
+- Ano/série: ${ano}
+- Conteúdo/tema: ${tema}
+- Quantidade de questões: ${qtd}
+- Observações: ${obs || "nenhuma"}
+
+REGRAS PEDAGÓGICAS
+- Linguagem simples e adequada a alunos do ${ano}, alinhada à BNCC.
+- Varie os tipos de questão: completar lacunas, marcar alternativa, ligar colunas, completar tabela e resposta escrita.
+- Comece cada enunciado com um comando claro (Leia, Complete, Marque, Ligue, Responda, Escreva...).
+- Não coloque gabarito nem respostas.
+- Não use imagens nem emojis.
+
+FORMATO (JSON válido, UTF-8, sem comentários)
+Campos de cada item de "questoes":
+- "texto": o enunciado. Use \\n para quebrar linha. Itens a), b), c) ficam dentro do texto, um por linha. Para lacunas, use ____________.
+- "tipo": o espaço de resposta que aparece abaixo do enunciado:
+  - "linhas": linhas para o aluno escrever. Informe "qtd" com o número de linhas (1 a 10).
+  - "espaco": espaço em branco para cálculo ou desenho. Informe "qtd" com a altura em linhas.
+  - "alternativas": opções para marcar. Preencha "alternativas" com 3 a 5 opções, SEM letras (o sistema coloca a), b), c)).
+  - "nenhum": sem espaço extra (quando a resposta fica nas lacunas do texto ou na tabela).
+- "alternativas": lista de textos (use [] quando o tipo não for "alternativas").
+- "tabela": null ou {"cab": [títulos das colunas], "linhas": [[células da linha], ...], "ligar": false}.
+  - No máximo 6 colunas; cada linha com o mesmo número de células de "cab". Use "" nas células que o aluno vai preencher.
+  - Para atividade de LIGAR: tabela com 2 colunas, "ligar": true e a segunda coluna embaralhada.
+Mantenha "titulo", "ano", "componente", "data", "professor" e "valor" exatamente como no exemplo.
+
+EXEMPLO DO FORMATO (o conteúdo é só ilustrativo):
+${exemploJSON(ex)}
+
+COMO RESPONDER
+1. Gere um arquivo para download chamado atividade.json com a atividade completa (${qtd} questões).
+2. Mostre também o mesmo JSON completo em um único bloco de código, para eu poder copiar.
+3. Não escreva mais nada além disso.`;
+}
+function atualizarPromptIA(){ $("#ia_prompt").value = promptIA(); }
+function abrirIA(){
+  atualizarPromptIA(); $("#iaErro").hidden = true; $("#iaModal").hidden = false;
+  setTimeout(() => $("#ia_tema").focus(), 50);
+}
+function fecharIA(){ $("#iaModal").hidden = true; }
+$("#btnIA").addEventListener("click", abrirIA);
+$("#iaFechar").addEventListener("click", fecharIA);
+["ia_tema","ia_qtd","ia_obs"].forEach(id => $("#" + id).addEventListener("input", atualizarPromptIA));
+$("#iaCopiar").addEventListener("click", () => {
+  if (!$("#ia_tema").value.trim()){ $("#ia_tema").focus(); toast("Escreva o conteúdo/tema primeiro."); return; }
+  atualizarPromptIA();
+  const ta = $("#ia_prompt"), b = $("#iaCopiar");
+  const ok = () => { b.textContent = "Copiado! Agora cole no ChatGPT"; setTimeout(() => b.textContent = "Copiar instruções para o ChatGPT", 3000); };
+  const manual = () => { ta.closest("details").open = true; ta.focus(); ta.select(); toast("Não consegui copiar sozinho. O texto está selecionado: copie com Ctrl+C (ou Copiar)."); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(ta.value).then(ok, manual);
+  else manual();
+});
+$("#iaImportar").addEventListener("click", () => {
+  const erro = $("#iaErro");
+  try {
+    const n = importar($("#ia_cola").value);
+    $("#ia_cola").value = ""; fecharIA();
+    toast(`Atividade importada: ${n} ${n === 1 ? "questão" : "questões"}. Confira antes de imprimir.`);
+  } catch (err) { erro.textContent = err.message; erro.hidden = false; }
+});
+$("#iaArquivo").addEventListener("click", () => { $("#fileOpen").value = ""; $("#fileOpen").click(); });
 $("#btnPrint").addEventListener("click", () => { $("#printHelp").hidden = false; $("#phGo").focus(); });
 $("#phCancel").addEventListener("click", () => $("#printHelp").hidden = true);
 /* O navegador usa o título da página como nome do PDF: "Matemática - 01-10-2026 - 4º ANO" */
@@ -932,7 +1138,7 @@ $("#phGo").addEventListener("click", () => {
   document.title = nomeDoPdf();
   setTimeout(() => window.print(), 50);
 });
-document.addEventListener("keydown", e => { if (e.key === "Escape") $("#printHelp").hidden = true; });
+document.addEventListener("keydown", e => { if (e.key === "Escape"){ $("#printHelp").hidden = true; fecharIA(); } });
 
 /* ---------- Início ---------- */
 fillHeader();
